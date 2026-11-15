@@ -1,0 +1,11 @@
+# Backend runs inside apache/spark:3.5.3 (Python 3.8.10, provides pyspark 3.5.3).
+# These extra deps are pinned to versions that still support Python 3.8.
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+python-multipart==0.0.17
+eval_type_backport==0.2.0
+pandas==2.0.3
+pyarrow==14.0.2
+numpy==1.24.4
+requests==2.32.3
+pytest==8.3.4

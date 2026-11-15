@@ -1,0 +1,89 @@
+# Bike Share Analytics — local Big Data stack.
+# Pinned image tags; backend reuses the SAME apache/spark image as the worker.
+name: bikeshare
+
+services:
+  namenode:
+    image: apache/hadoop:3.3.6
+    hostname: namenode
+    user: root   # named volume is root-owned; let the NameNode write /data/name
+    command: ["bash", "-c", "hdfs namenode -format -nonInteractive || true; hdfs namenode"]
+    env_file: ./hadoop/hadoop.env
+    ports:
+      - "9870:9870"   # NameNode UI + WebHDFS
+    volumes:
+      - hdfs_name:/data/name
+    networks: [bd]
+
+  datanode:
+    image: apache/hadoop:3.3.6
+    hostname: datanode
+    user: root   # named volume is root-owned; let the DataNode write /data/data
+    command: ["hdfs", "datanode"]
+    env_file: ./hadoop/hadoop.env
+    ports:
+      - "9864:9864"   # DataNode UI
+    volumes:
+      - hdfs_data:/data/data
+    depends_on: [namenode]
+    networks: [bd]
+
+  spark-master:
+    image: apache/spark:3.5.3
+    hostname: spark-master
+    command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.master.Master"]
+    environment:
+      SPARK_NO_DAEMONIZE: "true"
+    ports:
+      - "8080:8080"   # Spark master UI
+      - "7077:7077"   # Spark master RPC
+    networks: [bd]
+
+  spark-worker:
+    image: apache/spark:3.5.3
+    hostname: spark-worker
+    command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
+    environment:
+      SPARK_NO_DAEMONIZE: "true"
+      SPARK_WORKER_CORES: "4"
+      SPARK_WORKER_MEMORY: "3g"
+    ports:
+      - "8081:8081"   # Spark worker UI
+    depends_on: [spark-master]
+    networks: [bd]
+
+  backend:
+    build: ./backend
+    hostname: backend
+    environment:
+      SPARK_MASTER: "spark://spark-master:7077"
+      HDFS_NAMENODE: "hdfs://namenode:9000"
+      WEBHDFS_URL: "http://namenode:9870/webhdfs/v1"
+      SPARK_DRIVER_MEMORY: "2g"
+      SPARK_EXECUTOR_MEMORY: "3g"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/opt/app/data          # uploads + results shared with host
+      - ./model:/opt/app/model        # the finished model, written once
+      - ./backend/tests:/opt/app/tests:ro
+    depends_on: [namenode, datanode, spark-master, spark-worker]
+    networks: [bd]
+
+  frontend:
+    build: ./frontend
+    hostname: frontend
+    environment:
+      NEXT_PUBLIC_API_URL: "http://localhost:8000/api"
+    ports:
+      - "3000:3000"
+    depends_on: [backend]
+    networks: [bd]
+
+volumes:
+  hdfs_name:
+  hdfs_data:
+
+networks:
+  bd:
+    driver: bridge

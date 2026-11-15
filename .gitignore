@@ -1,0 +1,30 @@
+# Dataset: lisensi melarang distribusi ulang sebagai dataset mandiri
+data/
+*.csv
+*.xlsx
+*.parquet
+!model/**/*.parquet
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Spark / Hadoop
+spark-warehouse/
+metastore_db/
+derby.log
+*.crc
+
+# Node / Next.js
+node_modules/
+.next/
+frontend/out/
+
+# Metadata DB
+*.sqlite
+*.db
+
+# OS
+.DS_Store
