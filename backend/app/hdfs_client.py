@@ -34,3 +34,24 @@ def put_tree(local_dir: Path, hdfs_dir: str) -> None:
     for p in local_dir.rglob("*"):
         if p.is_file() and p.suffix != ".crc":  
             put_file(p, f"{hdfs_dir}/{p.relative_to(local_dir).as_posix()}")
+
+
+def list_dir(path: str) -> list:
+    """Nama isi folder di HDFS; folder yang belum ada dianggap kosong."""
+    try:
+        r = _call("GET", path, "LISTSTATUS")
+    except requests.HTTPError as e:
+        if e.response is not None and e.response.status_code == 404:
+            return []
+        raise
+    return [s["pathSuffix"] for s in r.json()["FileStatuses"]["FileStatus"]]
+
+
+def exists(path: str) -> bool:
+    try:
+        _call("GET", path, "GETFILESTATUS")
+    except requests.HTTPError as e:
+        if e.response is not None and e.response.status_code == 404:
+            return False
+        raise
+    return True

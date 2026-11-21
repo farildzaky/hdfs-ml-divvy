@@ -27,7 +27,10 @@ docker compose up -d --build
 
 Import file `.csv` dari `data/raw/csv/` lewat halaman utama. Upload tidak melatih model. Model GBT sudah
 dilatih sekali dari data Januari–Desember 2025 dan tersimpan di `model/gbt-2025/`. Upload pertama
-menyimpannya ke HDFS sebagai versi 1, lalu semua bulan yang diupload dibaca dari HDFS dan dipakai untuk mengujinya.
+menyalinnya ke HDFS di `/bikeshare/models/gbt-2025/`, lalu semua bulan yang diupload dibaca dari HDFS dan dipakai untuk mengujinya.
+
+Status job disimpan di memori backend, jadi riwayat import kosong lagi setelah backend restart.
+Daftar bulan di halaman utama dibaca langsung dari HDFS, jadi tetap ada.
 
 Untuk melatih ulang, taruh file latih di `data/raw/training/`, kosongkan data, lalu jalankan:
 
@@ -55,7 +58,7 @@ Unduh `YYYYMM-divvy-tripdata.zip` dari https://divvy-tripdata.s3.amazonaws.com/ 
 |---|---|
 | `/bikeshare/raw/{job}/` | File asli |
 | `/bikeshare/clean/month=YYYY-MM/` | Parquet bersih per bulan |
-| `/bikeshare/models/vNNNN/` | Setiap versi model |
+| `/bikeshare/models/gbt-2025/` | Model GBT (satu, tidak berversi) |
 | `/bikeshare/results/{job}/summary.json` | Hasil analitik |
 
 ## Test

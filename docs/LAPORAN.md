@@ -1,6 +1,6 @@
 # Laporan Analitik Perjalanan Sepeda Sewa dengan HDFS dan Spark
 
-Semua angka berasal dari pengujian seluruh file Januari–September 2026 yang diupload ke HDFS, memakai model versi 1.
+Semua angka berasal dari pengujian seluruh file Januari–September 2026 yang diupload ke HDFS, memakai model GBT 2025 yang sama.
 Dashboard baru menampilkan hasil setelah file diupload, pada tab Insight, Analisis, Model, dan Stasiun.
 
 ## 1. Sumber data
@@ -31,12 +31,12 @@ Kolom utamanya adalah jenis sepeda, waktu mulai dan selesai, stasiun awal dan ak
 
 **Alur**
 
-1. **Training (sekali, di luar website):** 12 file 2025 dibersihkan dengan aturan yang sama, lalu model Gradient Boosted Trees (100 pohon, kedalaman 7) dilatih dengan Spark MLlib dari sampel sekitar 2 juta baris. Pengaturan ini dipilih dengan menyisihkan satu dari lima hari tiap bulan 2025 sebagai data validasi. Data latih tidak masuk ke HDFS maupun riwayat import.
+1. **Training (sekali, di luar website):** 12 file 2025 dibersihkan dengan aturan yang sama, lalu model Gradient Boosted Trees (100 pohon, kedalaman 7) dilatih dengan Spark MLlib dari sampel sekitar 2 juta baris. Pengaturan ini dipilih dengan menyisihkan satu dari lima hari tiap bulan 2025 sebagai data validasi. Data latih tidak masuk ke HDFS.
 2. **Import:** file CSV per bulan diunggah lewat website, lalu kolomnya divalidasi.
 3. **Pembersihan:** data dibersihkan dengan pandas, dan jumlah baris yang dibuang dicatat untuk setiap aturan.
 4. **Penyimpanan:** file asli dan Parquet bersih disimpan di HDFS, dengan data bersih dipartisi per bulan.
 5. **Pemrosesan:** Spark membaca semua bulan yang sudah diupload langsung dari HDFS untuk analitik dan pengujian model.
-6. **Versi model:** upload pertama menyimpan model yang sudah jadi ke HDFS sebagai versi 1, dan riwayatnya dicatat di SQLite. Upload berikutnya memakai model yang sama.
+6. **Model:** upload pertama menyalin model yang sudah jadi ke HDFS di `/bikeshare/models/gbt-2025`. Upload berikutnya memakai model yang sama.
 
 **Hasil pembersihan data aktual**
 

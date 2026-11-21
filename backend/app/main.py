@@ -1,13 +1,14 @@
 """Backend FastAPI. Alamat dasar: http://localhost:8000/api
 
-Upload menyimpan file ke disk sedikit demi sedikit, memeriksa kolomnya, lalu memasukkan
-job ke antrean yang dijalankan satu per satu oleh thread worker. API juga menyediakan
-status job, hasil, daftar bulan di HDFS, dan riwayat versi model.
+Upload menyimpan file ke disk, memeriksa kolomnya, lalu memasukkan job ke antrean yang
+dijalankan satu per satu oleh thread worker. API juga menyediakan status job, hasil,
+dan daftar bulan yang ada di HDFS.
 """
 from __future__ import annotations
 
 import json
 import queue
+import re
 import shutil
 import threading
 import time
@@ -19,12 +20,12 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app import config, db, pipeline, preprocessing
+from app import config, hdfs_client, jobs, pipeline, preprocessing
 
 UPLOAD_ROOT = config.DATA_ROOT / "uploads"
 RESULTS_ROOT = config.DATA_ROOT / "results"
-MAX_BYTES = int(1.5 * 1024 ** 3)  # 1.5 GB/file
 ALLOWED = {".csv"}
+MONTH_DIR = re.compile(r"^month=(\d{4}-\d{2})$")
 
 app = FastAPI(title="Bike Share Analytics API")
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:3000"],
@@ -35,8 +36,6 @@ _jobs_q: "queue.Queue[tuple]" = queue.Queue()
 
 @app.on_event("startup")
 def _startup():
-    db.init()
-    db.fail_interrupted()
     threading.Thread(target=_worker, daemon=True).start()
 
 
@@ -45,7 +44,7 @@ def _worker():
         job_id, files = _jobs_q.get()
         try:
             pipeline.run_job(job_id, files)
-        except Exception:  # noqa: BLE001  (error sudah dicatat di tabel jobs; worker tetap hidup)
+        except Exception:  # noqa: BLE001  (error sudah dicatat di JOBS; worker tetap hidup)
             pass
         finally:
             _jobs_q.task_done()
@@ -54,10 +53,9 @@ def _worker():
 @app.get("/api/health")
 def health():
     import requests
-    from app.hdfs_client import WEBHDFS
     status = {"backend": "ok"}
     try:
-        r = requests.get(WEBHDFS + "/?op=LISTSTATUS", timeout=3)
+        r = requests.get(hdfs_client.WEBHDFS + "/?op=LISTSTATUS", timeout=3)
         status["hdfs"] = "ok" if r.ok else f"http {r.status_code}"
     except Exception as e:  # noqa: BLE001
         status["hdfs"] = f"unreachable ({type(e).__name__})"
@@ -79,39 +77,31 @@ async def upload(files: list[UploadFile] = File(...)):
             if suffix not in ALLOWED:
                 raise HTTPException(400, f"{display}: hanya file .csv yang didukung.")
             dest = raw_dir / f"file-{i:03d}{suffix}"
-            size = 0
             with open(dest, "wb") as fh:
-                while True:
-                    chunk = await up.read(1024 * 1024)
-                    if not chunk:
-                        break
-                    size += len(chunk)
-                    if size > MAX_BYTES:
-                        raise HTTPException(413, f"{display} melebihi 1.5 GB.")
-                    fh.write(chunk)
+                await run_in_threadpool(shutil.copyfileobj, up.file, fh)
             try:
                 await run_in_threadpool(preprocessing.validate, dest, display)
             except preprocessing.InvalidFile as e:
                 raise HTTPException(400, str(e))
             saved.append({"path": str(dest), "name": display})
-            detected.append({"name": display, "type": suffix[1:], "bytes": size})
+            detected.append({"name": display, "type": suffix[1:], "bytes": dest.stat().st_size})
     except HTTPException:
         shutil.rmtree(UPLOAD_ROOT / job_id, ignore_errors=True)
         raise
 
-    db.create_job(job_id, detected)
+    jobs.create(job_id, detected)
     _jobs_q.put((job_id, saved))
     return {"job_id": job_id, "files": detected}
 
 
 @app.get("/api/jobs")
-def jobs():
-    return db.list_jobs()
+def list_jobs():
+    return jobs.all_jobs()
 
 
 @app.get("/api/jobs/{job_id}")
 def job(job_id: str):
-    j = db.get_job(job_id)
+    j = jobs.get(job_id)
     if not j:
         raise HTTPException(404, "job tidak ditemukan")
     return j
@@ -129,9 +119,7 @@ def results(job_id: str):
 
 @app.get("/api/months")
 def months():
-    return db.list_months()
-
-
-@app.get("/api/models")
-def models():
-    return db.list_models()
+    # Dibaca langsung dari HDFS, jadi tetap benar setelah backend restart.
+    names = hdfs_client.list_dir(f"{config.HDFS_BASE}/clean")
+    found = [m.group(1) for m in map(MONTH_DIR.match, names) if m]
+    return [{"month": month} for month in sorted(found)]

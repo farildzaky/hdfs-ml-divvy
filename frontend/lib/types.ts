@@ -14,12 +14,7 @@ export interface Job {
   created_at: number;
 }
 
-export interface StoredMonth { month: string; rows: number; job_id: string; imported_at: number; }
-
-export interface ModelVersion {
-  version: number; path: string; algorithm: string; threshold: number;
-  train_months: string[]; metrics: Record<string, number>; job_id: string; created_at: number;
-}
+export interface StoredMonth { month: string; }
 
 export interface PreprocStep { step: string; label: string; rows_removed: number; }
 export interface PreprocFile {
@@ -43,7 +38,6 @@ export interface ModelSection {
   pr_curve: { recall: number; precision: number }[];
   feature_importance: { feature: string; importance: number }[];
   monthly_tests: MonthlyTest[];
-  model_version: number;
   model_path: string;
 }
 export interface StationCluster {

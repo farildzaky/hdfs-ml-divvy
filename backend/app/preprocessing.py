@@ -58,14 +58,13 @@ def _read_csv(path: Path, display: str, nrows: "int | None" = None) -> pd.DataFr
 
 
 def validate(path: Path, display: str) -> None:
-    """Cek cepat saat upload, supaya file yang salah ditolak sebelum masuk antrean."""
     if path.suffix.lower() != ".csv":
         raise InvalidFile(f"{display}: hanya file .csv yang didukung.")
     try:
         _read_csv(path, display, nrows=1)
     except InvalidFile:
         raise
-    except Exception as e:  # file kosong, encoding salah, atau file biner yang diberi nama .csv
+    except Exception as e:  
         raise InvalidFile(f"{display}: file tidak bisa dibaca ({type(e).__name__}).")
 
 
@@ -131,7 +130,6 @@ def clean(df: pd.DataFrame) -> "tuple[pd.DataFrame, list]":
 
 
 def process_file(path: Path, display: str, out_dir: Path, part: int) -> dict:
-    """Bersihkan satu file, tulis ke ``out_dir/month=YYYY-MM/part-N.parquet``."""
     raw = _read_csv(path, display)
     rows_in = len(raw)
     df, steps = clean(raw)
@@ -153,7 +151,6 @@ def process_file(path: Path, display: str, out_dir: Path, part: int) -> dict:
 
 
 def run_all(files: List[dict], out_dir: Path) -> dict:
-    """``files``: list of {"path": Path, "name": display name}."""
     reports = [process_file(Path(f["path"]), f["name"], out_dir, i)
                for i, f in enumerate(files)]
     months: dict = {}

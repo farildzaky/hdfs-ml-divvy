@@ -1,9 +1,8 @@
 "use client";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { api, fmtNum } from "@/lib/api";
-import type { ModelVersion, StoredMonth } from "@/lib/types";
+import type { StoredMonth } from "@/lib/types";
 import { Badge, Section, SimpleTable } from "@/components/ui";
 
 const ACCEPTED = [".csv"];
@@ -15,12 +14,10 @@ export default function ImportPage() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [months, setMonths] = useState<StoredMonth[]>([]);
-  const [models, setModels] = useState<ModelVersion[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     api.months().then(setMonths).catch(() => {});
-    api.models().then(setModels).catch(() => {});
   }, []);
 
   const add = (list: FileList | null) => {
@@ -81,21 +78,7 @@ export default function ImportPage() {
       <div className="grid gap-4 md:grid-cols-2">
         <Section title="Data di HDFS" right={<Badge color="indigo">{months.length} bulan</Badge>}>
           {months.length === 0 ? <p className="text-sm">Belum ada data.</p> : (
-            <SimpleTable cols={["Bulan", "Jumlah perjalanan"]}
-              rows={months.map((m) => [m.month, fmtNum(m.rows)])} />
-          )}
-        </Section>
-        <Section title="Versi model" right={<Badge color="emerald">{models.length} versi</Badge>}>
-          {models.length === 0 ? <p className="text-sm">Belum ada model.</p> : (
-            <div className="space-y-2">
-              {models.map((m) => (
-                <Link key={m.version} href={`/jobs/${m.job_id}`}
-                  className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm hover:bg-slate-100 dark:bg-white/5 dark:hover:bg-white/10">
-                  <span>Versi {m.version} · Belajar dari {m.train_months[0]} sampai {m.train_months[m.train_months.length - 1]}</span>
-                  {m.metrics.accuracy !== undefined && <span>Akurasi {(m.metrics.accuracy * 100).toFixed(1)}%</span>}
-                </Link>
-              ))}
-            </div>
+            <SimpleTable cols={["Bulan"]} rows={months.map((m) => [m.month])} />
           )}
         </Section>
       </div>

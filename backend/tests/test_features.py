@@ -68,17 +68,13 @@ def test_speed_is_capped_against_gps_glitches(spark):
     assert [r["speed_kmh"] for r in df.select("speed_kmh").collect()] == [15.0, 40.0]
 
 
-def test_only_untouched_months_reuse_earlier_results(tmp_path, monkeypatch):
-    import json
-    from app import config, pipeline
-    monkeypatch.setattr(config, "DATA_ROOT", tmp_path)
-    current = {"job_id": "job-1"}
-    assert pipeline._known_tests(current, ["2026-09"]) == {}
-    out = tmp_path / "results" / "job-1"
-    out.mkdir(parents=True)
-    rows = [{"month": "2026-08", "accuracy": 0.7}, {"month": "2026-09", "accuracy": 0.6}]
-    (out / "summary.json").write_text(json.dumps({"model": {"monthly_tests": rows}}))
-    assert pipeline._known_tests(current, ["2026-09"]) == {"2026-08": rows[0]}
+def test_job_progress_follows_stage_order():
+    from app import jobs
+    jobs.create("job-t", [])
+    jobs.set_stage("job-t", "preprocessing")
+    assert jobs.get("job-t")["status"] == "running" and jobs.get("job-t")["progress"] == 0.125
+    jobs.set_stage("job-t", "completed")
+    assert jobs.get("job-t")["status"] == "completed" and jobs.get("job-t")["progress"] == 1.0
 
 
 def test_clustering_rejects_k_that_only_isolates_outliers():

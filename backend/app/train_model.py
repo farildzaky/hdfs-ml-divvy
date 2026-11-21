@@ -3,8 +3,8 @@
     docker compose exec -e DATA_MIN_DATE=2025-01-01 -e SPARK_MASTER='local[*]' \\
         -e SPARK_DRIVER_MEMORY=4g backend python -m app.train_model
 
-Training data stays out of HDFS and the job history. The result goes to model/,
-and the first upload on the website publishes it to HDFS as version 1.
+Training data stays out of HDFS. The result goes to model/,
+and the first upload on the website copies it to HDFS at /bikeshare/models/gbt-2025.
 """
 from __future__ import annotations
 

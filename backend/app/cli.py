@@ -11,7 +11,7 @@ import time
 import uuid
 from pathlib import Path
 
-from app import db, pipeline
+from app import jobs, pipeline
 
 
 def main():
@@ -25,10 +25,9 @@ def main():
         print("ERROR: tidak ada file .csv.", file=sys.stderr)
         sys.exit(2)
 
-    db.init()
     job_id = f"job-{time.strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:6]}"
     files = [{"path": str(p), "name": p.name} for p in paths]
-    db.create_job(job_id, [{"name": p.name, "type": p.suffix[1:], "bytes": p.stat().st_size} for p in paths])
+    jobs.create(job_id, [{"name": p.name, "type": p.suffix[1:], "bytes": p.stat().st_size} for p in paths])
     summary = pipeline.run_job(job_id, files, echo=True)
     print(json.dumps({"job_id": job_id, "kpis": summary["kpis"],
                       "test_metrics": summary["model"].get("test_metrics"),

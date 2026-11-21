@@ -1,4 +1,4 @@
-import type { Job, ModelVersion, StoredMonth, Summary } from "./types";
+import type { Job, StoredMonth, Summary } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
@@ -13,7 +13,6 @@ export const api = {
   job: (id: string) => j<Job>(`/jobs/${id}`),
   results: (id: string) => j<Summary>(`/jobs/${id}/results`),
   months: () => j<StoredMonth[]>("/months"),
-  models: () => j<ModelVersion[]>("/models"),
   async upload(files: File[]) {
     const fd = new FormData();
     files.forEach((f) => fd.append("files", f));

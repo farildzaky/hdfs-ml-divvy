@@ -1,5 +1,5 @@
 #!/bin/sh
-# Empties the app: HDFS data, published models, job history and results.
+# Empties the app: HDFS data (including the model copy) and results.
 # The source CSV files and the trained model in model/ are kept.
 set -eu
 cd "$(dirname "$0")/.."
@@ -9,7 +9,7 @@ if curl -s localhost:8000/api/jobs | grep -q '"status":"\(queued\|running\)"'; t
   exit 1
 fi
 
-echo "Ini menghapus permanen /bikeshare di HDFS, jobs.sqlite, data/results, dan data/uploads."
+echo "Ini menghapus permanen /bikeshare di HDFS, data/results, dan data/uploads."
 echo "File CSV sumber dan model di folder model/ tidak dihapus."
 printf "Ketik HAPUS untuk lanjut: "
 read -r answer
@@ -17,6 +17,6 @@ read -r answer
 
 docker compose stop backend
 docker compose exec -T namenode hdfs dfs -rm -r -f -skipTrash /bikeshare
-rm -rf data/results data/uploads data/jobs.sqlite
+rm -rf data/results data/uploads
 docker compose start backend
 echo "Selesai. Data sudah kosong, silakan import dari website."

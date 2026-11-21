@@ -164,10 +164,7 @@ function Model({ s }: { s: Summary }) {
   return (
     <div className="space-y-4">
       <Section title="Model menebak: perjalanan ini oleh member atau casual?" right={
-        <div className="flex gap-2">
-          <Badge color="emerald">Versi {m.model_version}</Badge>
-          <Badge>Tidak dilatih saat upload</Badge>
-        </div>}>
+        <Badge>Tidak dilatih saat upload</Badge>}>
         <div className="grid gap-3 text-sm md:grid-cols-3">
           <StatTile label="Algoritma" value="Gradient Boosted Trees" />
           <StatTile label="Data untuk belajar" value={`${m.split.train.length} bulan`} sub={`${m.split.train[0]} sampai ${m.split.train[m.split.train.length - 1]}`} />
