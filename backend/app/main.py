@@ -1,9 +1,3 @@
-"""Backend FastAPI. Alamat dasar: http://localhost:8000/api
-
-Upload menyimpan file ke disk, memeriksa kolomnya, lalu memasukkan job ke antrean yang
-dijalankan satu per satu oleh thread worker. API juga menyediakan status job, hasil,
-dan daftar bulan yang ada di HDFS.
-"""
 from __future__ import annotations
 
 import json
@@ -44,7 +38,7 @@ def _worker():
         job_id, files = _jobs_q.get()
         try:
             pipeline.run_job(job_id, files)
-        except Exception:  # noqa: BLE001  (error sudah dicatat di JOBS; worker tetap hidup)
+        except Exception:  
             pass
         finally:
             _jobs_q.task_done()
@@ -119,7 +113,6 @@ def results(job_id: str):
 
 @app.get("/api/months")
 def months():
-    # Dibaca langsung dari HDFS, jadi tetap benar setelah backend restart.
     names = hdfs_client.list_dir(f"{config.HDFS_BASE}/clean")
     found = [m.group(1) for m in map(MONTH_DIR.match, names) if m]
     return [{"month": month} for month in sorted(found)]

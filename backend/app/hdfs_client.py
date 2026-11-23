@@ -37,7 +37,6 @@ def put_tree(local_dir: Path, hdfs_dir: str) -> None:
 
 
 def list_dir(path: str) -> list:
-    """Nama isi folder di HDFS; folder yang belum ada dianggap kosong."""
     try:
         r = _call("GET", path, "LISTSTATUS")
     except requests.HTTPError as e:

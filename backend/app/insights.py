@@ -1,5 +1,4 @@
-"""Plain-language findings. Every sentence is filled from computed numbers, so
-the text cannot drift from the data. Findings describe patterns, not causes."""
+
 from __future__ import annotations
 
 
